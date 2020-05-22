@@ -163,7 +163,11 @@ class RougeCalculator():
         c = Counter(self.ngram_iter(words, n))
         return c
 
-
+    def count_overlap(self, summary_ngrams, reference_ngrams):
+        result = 0
+        for k, v in summary_ngrams.items():
+            result += min(v, reference_ngrams[k])
+        return result
 
     def rouge_we_1(self, summary, references, alpha=0.5):
         return self.rouge_we(summary, references, 1, alpha)
@@ -194,7 +198,6 @@ class RougeCalculator():
 
         # _variable = it means that the varibale is for internal use, it is a local varibale
 
-
         # summary = str
         # references = str
         _summary = self.tokenize(summary)
@@ -205,21 +208,47 @@ class RougeCalculator():
         recall_score = 0
         count_for_recall = 0
         score = 0
+        matches = 0
+        hit = 0
+        matches += self.count_overlap(summary_ngrams, ref_ngrams)
 
         for i in range(len(summary_ngrams)):
+            # score = $h_word2vec
             score += self.on_word2vec_diff(summary_ngrams[i], ref_ngrams[i])
 
+        # count_for_recall = totalGramCount
         count_for_recall = self.len_ngram(_refs, n)
+        # count_for_prec = totalGramCountP
         count_for_prec = self.len_ngram(_summary, n)
-        f1 = self.calc_f1(score, count_for_recall, count_for_prec, alpha)
-        return f1
+
+        linear_weight = 0.5
+        # hit = gramHit
+        hit += (linear_weight * matches) + ((1 - linear_weight) * score)
+        model_count = min(count_for_recall, count_for_prec)
+        # edit_we = score = gramScore
+        edit_we = self.safe_div(hit, model_count)
+        final_score = edit_we
+
+        # matches = totalGramHit
+        # matches += hit
+        # gramScore = matches/count_for_recall
+        # ROUGEScore = avgROUGE = gramScore
+        # avgAvgROUGE_R += ROUGEScore
+        # avgAvgROUGE_R = avgAvgROUGE_R/count_for_recall
+        # computeNGramScore
+
+        matches_f1 = self.calc_f1(matches, count_for_recall, count_for_prec, alpha)
+        word2vec_f1 = self.calc_f1(score, count_for_recall, count_for_prec, alpha)
+
+        return final_score
+
+    def safe_div(self, x1, x2):
+        return 0 if x2 == 0 else x1 / x2
 
     def calc_f1(self, score, count_for_recall, count_for_precision, alpha):
-        def safe_div(x1, x2):
-             return 0 if x2 == 0 else x1 / x2
 
-        recall = safe_div(score, count_for_recall)
-        precision = safe_div(score, count_for_precision)
+        recall = self.safe_div(score, count_for_recall)
+        precision = self.safe_div(score, count_for_precision)
         denom = (1.0 - alpha) * precision + alpha * recall
 
-        return safe_div(precision * recall, denom)
+        return self.safe_div(precision * recall, denom)
