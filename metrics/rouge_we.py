@@ -221,10 +221,10 @@ class RougeCalculator():
         # count_for_prec = totalGramCountP
         count_for_prec = self.len_ngram(_summary, n)
 
-        linear_weight = 0.5
+        linear_weight = 0.3
         # hit = gramHit
         hit += (linear_weight * matches) + ((1 - linear_weight) * score)
-        model_count = min(count_for_recall, count_for_prec)
+        model_count = max(count_for_recall, count_for_prec)
         # edit_we = score = gramScore
         edit_we = self.safe_div(hit, model_count)
         final_score = edit_we
