@@ -149,7 +149,7 @@ class RougeCalculator():
 
             # print("Similarity between " + word1 +" and "+word2+" is:" + str(cosine_value))
 
-            return cosine_value
+            return word2vec_sim
 
     def len_ngram(self, words, n):
         return max(len(words) - n + 1, 0)
@@ -210,7 +210,7 @@ class RougeCalculator():
         score = 0
         matches = 0
         hit = 0
-        matches += self.count_overlap(summary_ngrams, ref_ngrams)
+        matches = self.count_overlap(summary_ngrams, ref_ngrams)
 
         for i in range(len(summary_ngrams)):
             # score = $h_word2vec
